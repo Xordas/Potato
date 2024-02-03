@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -63,20 +64,85 @@
             text-align: center;
             padding: 10px 0;
         }
+
+        .spinner {
+            margin: 100px auto;
+            width: 50px;
+            height: 40px;
+            text-align: center;
+            font-size: 10px;
+        }
+
+        .spinner > div {
+            background-color: #333;
+            height: 100%;
+            width: 6px;
+            display: inline-block;
+            
+            -webkit-animation: stretchdelay 1.2s infinite ease-in-out;
+            animation: stretchdelay 1.2s infinite ease-in-out;
+        }
+
+        .spinner .rect2 {
+            -webkit-animation-delay: -1.1s;
+            animation-delay: -1.1s;
+        }
+
+        .spinner .rect3 {
+            -webkit-animation-delay: -1.0s;
+            animation-delay: -1.0s;
+        }
+
+        .spinner .rect4 {
+            -webkit-animation-delay: -0.9s;
+            animation-delay: -0.9s;
+        }
+
+        .spinner .rect5 {
+            -webkit-animation-delay: -0.8s;
+            animation-delay: -0.8s;
+        }
+
+        @-webkit-keyframes stretchdelay {
+            0%, 40%, 100% { -webkit-transform: scaleY(0.4) }  
+            20% { -webkit-transform: scaleY(1.0) }
+        }
+
+        @keyframes stretchdelay {
+            0%, 40%, 100% { 
+                transform: scaleY(0.4);
+                -webkit-transform: scaleY(0.4);
+            }  20% { 
+                transform: scaleY(1.0);
+                -webkit-transform: scaleY(1.0);
+            }
+        }
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <h2>Select a file to encode or decode</h2>
-        <label for="fileInput">Choose File</label>
-        <input type="file" id="fileInput" onchange="checkFileType()" />
-        <p id="fileName"></p>
-        <button id="noFileButton" class="hidden" disabled>No File Selected</button> 
-        <button id="encodeButton" class="hidden" onclick="encodeFile()">Encode File</button>
-        <button id="decodeButton" class="hidden" onclick="decodeFile()">Decode File</button>
-    </div>
+    <body>
+        <div id="mainContent" class="container">
+            <h2>Select a file to encode or decode</h2>
+            <label for="fileInput">Choose File</label>
+            <input type="file" id="fileInput" onchange="checkFileType()" />
+            <p id="fileName"></p>
+            <button id="noFileButton" class="hidden" disabled>No File Selected</button> 
+            <button id="encodeButton" class="hidden" onclick="encodeFile()">Encode File</button>
+            <button id="decodeButton" class="hidden" onclick="decodeFile()">Decode File</button>
+        </div>
+        <div id="loading" style="display: none;">
+            <div class="spinner">
+                <div class="rect1"></div>
+                <div class="rect2"></div>
+                <div class="rect3"></div>
+                <div class="rect4"></div>
+                <div class="rect5"></div>
+            </div>
+        </div>
+    </body>
     
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pako/1.0.11/pako.min.js"></script>
 <script>
     function checkFileType() {
         var fileInput = document.getElementById('fileInput');
@@ -108,10 +174,16 @@
         var file = fileInput.files[0];
         var reader = new FileReader();
 
+        document.getElementById('mainContent').style.display = 'none'; // Hide main content
+        document.getElementById('loading').style.display = 'block'; // Show loading icon
+        encodeButton.classList.add('hidden');
+        document.getElementById('fileName').textContent = ''; // Clear paragraph content
+
         reader.onload = function(e) {
             var data = new Uint8Array(e.target.result);
+            var compressedData = pako.deflate(data); // compress data
             var extensionBytes = new TextEncoder().encode(file.name.split('.').pop().padEnd(5, '\0'));
-            var combinedData = new Uint8Array([...extensionBytes, ...data]);
+            var combinedData = new Uint8Array([...extensionBytes, ...compressedData]);
             var reversedData = combinedData.reverse();
             var blob = new Blob([reversedData], {type: "octet/stream"});
             var url = window.URL.createObjectURL(blob);
@@ -119,6 +191,9 @@
             a.href = url;
             a.download = file.name.split('.').slice(0, -1).join('.') + '.potato';
             a.click();
+
+            document.getElementById('loading').style.display = 'none'; // Hide loading icon
+            document.getElementById('mainContent').style.display = 'block'; // Show main content
         };
 
         reader.readAsArrayBuffer(file);
@@ -129,18 +204,27 @@
         var file = fileInput.files[0];
         var reader = new FileReader();
 
+        document.getElementById('mainContent').style.display = 'none'; // Hide main content
+        document.getElementById('loading').style.display = 'block'; // Show loading icon
+        decodeButton.classList.add('hidden');
+        document.getElementById('fileName').textContent = ''; // Clear paragraph content
+
         reader.onload = function(e) {
             var data = new Uint8Array(e.target.result);
             var reversedData = data.reverse();
             var extensionBytes = reversedData.slice(0, 5);
-            var originalData = reversedData.slice(5);
+            var compressedData = reversedData.slice(5);
+            var decompressedData = pako.inflate(compressedData); // decompress data
             var extension = new TextDecoder().decode(extensionBytes).replace(/\0/g, '');
-            var blob = new Blob([originalData], {type: "octet/stream"});
+            var blob = new Blob([decompressedData], {type: "octet/stream"});
             var url = window.URL.createObjectURL(blob);
             var a = document.createElement('a');
             a.href = url;
             a.download = file.name.split('.').slice(0, -1).join('.') + '.' + extension;
             a.click();
+
+            document.getElementById('loading').style.display = 'none'; // Hide loading icon
+            document.getElementById('mainContent').style.display = 'block'; // Show main content
         };
 
         reader.readAsArrayBuffer(file);
