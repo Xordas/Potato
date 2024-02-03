@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+    <link rel="icon" href="https://pngimg.com/d/potato_PNG7078.png" type="image/png" sizes="128x128">
+    <title>Potato encoder</title> 
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #1a1a1a;
+            color: #f0f0f0;
+        }
+        .container {
+            text-align: center;
+            background-color: #2b2b2b;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0px 0px 10px rgba(0,0,0,0.1);
+            width: 400px;
+        }
+        h2 {
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+        button, label {
+            margin-top: 20px;
+            padding: 10px 30px;
+            border: none;
+            border-radius: 5px;
+            background-color: #007BFF;
+            color: #fff;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            font-size: 16px;
+            display: inline-block;
+            text-align: center;
+        }
+        button:hover, label:hover {
+            background-color: #0056b3;
+        }
+        .hidden {
+            display: none;
+        }
+        input[type="file"] {
+            display: none;
+        }
+        #fileName {
+            margin-top: 20px;
+            font-size: 14px; 
+        }
+
+        .disclaimer {
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            text-align: center;
+            padding: 10px 0;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2>Select a file to encode or decode</h2>
+        <label for="fileInput">Choose File</label>
+        <input type="file" id="fileInput" onchange="checkFileType()" />
+        <p id="fileName"></p>
+        <button id="noFileButton" class="hidden" disabled>No File Selected</button> 
+        <button id="encodeButton" class="hidden" onclick="encodeFile()">Encode File</button>
+        <button id="decodeButton" class="hidden" onclick="decodeFile()">Decode File</button>
+    </div>
+    
+<script>
+    function checkFileType() {
+        var fileInput = document.getElementById('fileInput');
+        var file = fileInput.files[0];
+        var noFileButton = document.getElementById('noFileButton');
+        var encodeButton = document.getElementById('encodeButton');
+        var decodeButton = document.getElementById('decodeButton');
+    
+        if (file) {
+            noFileButton.classList.add('hidden');
+            if (file.name.split('.').pop() === 'potato') {
+                encodeButton.classList.add('hidden');
+                decodeButton.classList.remove('hidden');
+            } else {
+                encodeButton.classList.remove('hidden');
+                decodeButton.classList.add('hidden');
+            }
+            document.getElementById('fileName').textContent = 'Selected file: ' + file.name;
+        } else {
+            noFileButton.classList.remove('hidden');
+            encodeButton.classList.add('hidden');
+            decodeButton.classList.add('hidden');
+            document.getElementById('fileName').textContent = '';
+        }
+    }
+
+    function encodeFile() {
+        var fileInput = document.getElementById('fileInput');
+        var file = fileInput.files[0];
+        var reader = new FileReader();
+
+        reader.onload = function(e) {
+            var data = new Uint8Array(e.target.result);
+            var extensionBytes = new TextEncoder().encode(file.name.split('.').pop().padEnd(5, '\0'));
+            var combinedData = new Uint8Array([...extensionBytes, ...data]);
+            var reversedData = combinedData.reverse();
+            var blob = new Blob([reversedData], {type: "octet/stream"});
+            var url = window.URL.createObjectURL(blob);
+            var a = document.createElement('a');
+            a.href = url;
+            a.download = file.name.split('.').slice(0, -1).join('.') + '.potato';
+            a.click();
+        };
+
+        reader.readAsArrayBuffer(file);
+    }
+
+    function decodeFile() {
+        var fileInput = document.getElementById('fileInput');
+        var file = fileInput.files[0];
+        var reader = new FileReader();
+
+        reader.onload = function(e) {
+            var data = new Uint8Array(e.target.result);
+            var reversedData = data.reverse();
+            var extensionBytes = reversedData.slice(0, 5);
+            var originalData = reversedData.slice(5);
+            var extension = new TextDecoder().decode(extensionBytes).replace(/\0/g, '');
+            var blob = new Blob([originalData], {type: "octet/stream"});
+            var url = window.URL.createObjectURL(blob);
+            var a = document.createElement('a');
+            a.href = url;
+            a.download = file.name.split('.').slice(0, -1).join('.') + '.' + extension;
+            a.click();
+        };
+
+        reader.readAsArrayBuffer(file);
+    }
+</script>
+
+        <h6 class="disclaimer">Please dont encode anything important, this website is subject to change and so is the encoding process.</h6>
+
+</body>
+</html>
