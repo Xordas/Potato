@@ -143,6 +143,7 @@
     </body>
     
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/1.0.11/pako.min.js"></script>
+
 <script>
     function checkFileType() {
         var fileInput = document.getElementById('fileInput');
@@ -150,7 +151,7 @@
         var noFileButton = document.getElementById('noFileButton');
         var encodeButton = document.getElementById('encodeButton');
         var decodeButton = document.getElementById('decodeButton');
-    
+
         if (file) {
             noFileButton.classList.add('hidden');
             if (file.name.split('.').pop() === 'potato') {
@@ -174,26 +175,31 @@
         var file = fileInput.files[0];
         var reader = new FileReader();
 
-        document.getElementById('mainContent').style.display = 'none'; // Hide main content
-        document.getElementById('loading').style.display = 'block'; // Show loading icon
-        encodeButton.classList.add('hidden');
-        document.getElementById('fileName').textContent = ''; // Clear paragraph content
+        document.getElementById('mainContent').style.display = 'none'; 
+        document.getElementById('loading').style.display = 'block'; 
+        document.getElementById('encodeButton').classList.add('hidden');
+        document.getElementById('fileName').textContent = ''; 
 
         reader.onload = function(e) {
-            var data = new Uint8Array(e.target.result);
-            var compressedData = pako.deflate(data); // compress data
-            var extensionBytes = new TextEncoder().encode(file.name.split('.').pop().padEnd(5, '\0'));
-            var combinedData = new Uint8Array([...extensionBytes, ...compressedData]);
-            var reversedData = combinedData.reverse();
-            var blob = new Blob([reversedData], {type: "octet/stream"});
+            var arrayBuffer = e.target.result;
+            var byteArray = new Uint8Array(arrayBuffer);
+            var binaryRepresentation = '';
+
+            for (var i = 0; i < byteArray.length; i++) {
+                var binaryString = byteArray[i].toString(2).padStart(8, '0');
+                binaryRepresentation += binaryString;
+            }
+
+            var potatoBinary = binaryRepresentation.replace(/0/g, '🍠').replace(/1/g, '🥔');
+            var blob = new Blob([potatoBinary], {type: "text/plain"});
             var url = window.URL.createObjectURL(blob);
             var a = document.createElement('a');
             a.href = url;
             a.download = file.name.split('.').slice(0, -1).join('.') + '.potato';
             a.click();
 
-            document.getElementById('loading').style.display = 'none'; // Hide loading icon
-            document.getElementById('mainContent').style.display = 'block'; // Show main content
+            document.getElementById('loading').style.display = 'none'; 
+            document.getElementById('mainContent').style.display = 'block'; 
         };
 
         reader.readAsArrayBuffer(file);
@@ -203,35 +209,44 @@
         var fileInput = document.getElementById('fileInput');
         var file = fileInput.files[0];
         var reader = new FileReader();
-
-        document.getElementById('mainContent').style.display = 'none'; // Hide main content
-        document.getElementById('loading').style.display = 'block'; // Show loading icon
-        decodeButton.classList.add('hidden');
-        document.getElementById('fileName').textContent = ''; // Clear paragraph content
-
+    
+        document.getElementById('mainContent').style.display = 'none'; 
+        document.getElementById('loading').style.display = 'block'; 
+        document.getElementById('decodeButton').classList.add('hidden');
+        document.getElementById('fileName').textContent = ''; 
+    
         reader.onload = function(e) {
-            var data = new Uint8Array(e.target.result);
-            var reversedData = data.reverse();
-            var extensionBytes = reversedData.slice(0, 5);
-            var compressedData = reversedData.slice(5);
-            var decompressedData = pako.inflate(compressedData); // decompress data
-            var extension = new TextDecoder().decode(extensionBytes).replace(/\0/g, '');
-            var blob = new Blob([decompressedData], {type: "octet/stream"});
+            var potatoBinary = e.target.result;
+            var binaryRepresentation = potatoBinary.replace(/🥔/g, '1').replace(/🍠/g, '0');
+    
+            var byteArray = new Uint8Array(binaryRepresentation.length / 8);
+            for (var i = 0; i < binaryRepresentation.length; i += 8) {
+                var byte = binaryRepresentation.slice(i, i + 8);
+                byteArray[i / 8] = parseInt(byte, 2);
+            }
+    
+            
+            var originalFileName = file.name.split('.').slice(0, -1).join('.');
+            var originalExtension = originalFileName.split('.').pop();
+            var decodedFileName = originalFileName + '.' + originalExtension;
+    
+            var blob = new Blob([byteArray], {type: "application/octet-stream"});
             var url = window.URL.createObjectURL(blob);
             var a = document.createElement('a');
             a.href = url;
-            a.download = file.name.split('.').slice(0, -1).join('.') + '.' + extension;
+            a.download = decodedFileName;
             a.click();
-
-            document.getElementById('loading').style.display = 'none'; // Hide loading icon
-            document.getElementById('mainContent').style.display = 'block'; // Show main content
+    
+            document.getElementById('loading').style.display = 'none'; 
+            document.getElementById('mainContent').style.display = 'block'; 
         };
-
-        reader.readAsArrayBuffer(file);
+    
+        reader.readAsText(file);
     }
 </script>
 
-        <h6 class="disclaimer">Please dont encode anything important, this website is subject to change and so is the encoding process.</h6>
+        <h6 class="disclaimer">Please dont encode anything important, this website is subject to change and so is the encoding process.</h6><br>
+        <h6 class="disclaimer">This process makes files significantly larger. A 20KB file was increased to 630KB.</h6>
 
 </body>
 </html>
